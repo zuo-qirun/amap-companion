@@ -3,6 +3,8 @@ name: Build lane APK
 on:
   push:
     branches: [ build-lane-icons-apk ]
+  pull_request:
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
