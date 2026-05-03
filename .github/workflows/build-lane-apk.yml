@@ -1,0 +1,213 @@
+name: Build lane APK
+
+on:
+  push:
+    branches: [ build-lane-icons-apk ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply lane icon patch
+        shell: pwsh
+        run: |
+          Set-Content -Path lane.patch -Encoding UTF8 -Value @'
+diff --git a/app/src/main/java/com/autonavi/amapclone/companion/LaneBarView.java b/app/src/main/java/com/autonavi/amapclone/companion/LaneBarView.java
+index f6495c8..821ef7f 100644
+--- a/app/src/main/java/com/autonavi/amapclone/companion/LaneBarView.java
++++ b/app/src/main/java/com/autonavi/amapclone/companion/LaneBarView.java
+@@ -2,6 +2,8 @@ package com.autonavi.amapclone.companion;
+ 
+ import android.content.Context;
+ import android.graphics.Canvas;
++import android.graphics.Bitmap;
++import android.graphics.BitmapFactory;
+ import android.graphics.DashPathEffect;
+ import android.graphics.Paint;
+ import android.graphics.Path;
+@@ -9,6 +11,8 @@ import android.graphics.RectF;
+ import android.view.View;
+ 
+ import java.util.Arrays;
++import java.util.HashMap;
++import java.util.Map;
+ 
+ public class LaneBarView extends View {
+     private static final int STRAIGHT = 1;
+@@ -21,6 +25,7 @@ public class LaneBarView extends View {
+     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+     private final RectF rect = new RectF();
+     private final Path path = new Path();
++    private final Map<String, Bitmap> iconCache = new HashMap<>();
+     private int[] lanes = new int[]{15, 15, 15, 15};
+     private boolean[] recommend = new boolean[]{true, true, true, true};
+ 
+@@ -107,11 +112,14 @@ public class LaneBarView extends View {
+                 rect.set(cell * i + dp(4), dp(5), cell * (i + 1) - dp(4), getHeight() - dp(5));
+                 canvas.drawRoundRect(rect, dp(9), dp(9), paint);
+             }
+-            drawLaneIcon(canvas, icon, cell * i, cell, laneRecommended);
++            drawLaneIcon(canvas, lanes[i], icon, cell * i, cell, laneRecommended);
+         }
+     }
+ 
+-    private void drawLaneIcon(Canvas canvas, LaneIcon icon, float left, float width, boolean laneRecommended) {
++    private void drawLaneIcon(Canvas canvas, int laneCode, LaneIcon icon, float left, float width, boolean laneRecommended) {
++        if (drawAmapLaneBitmap(canvas, laneCode, left, width, laneRecommended)) {
++            return;
++        }
+         paint.setStyle(Paint.Style.STROKE);
+         paint.setStrokeCap(Paint.Cap.ROUND);
+         paint.setStrokeJoin(Paint.Join.ROUND);
+@@ -133,6 +141,132 @@ public class LaneBarView extends View {
+         paint.setStyle(Paint.Style.FILL);
+     }
+ 
++
++    private boolean drawAmapLaneBitmap(Canvas canvas, int laneCode, float left, float width, boolean laneRecommended) {
++        String asset = amapAssetForLane(laneCode);
++        if (asset == null) {
++            return false;
++        }
++        String name = laneRecommended ? "global_image_landfront_recommend_" + asset : "global_image_landfront_" + asset;
++        Bitmap bitmap = loadLaneBitmap(name);
++        if (bitmap == null && laneRecommended) {
++            bitmap = loadLaneBitmap("global_image_landfront_" + asset);
++        }
++        if (bitmap == null) {
++            return false;
++        }
++
++        float iconHeight = Math.min(getHeight() - dp(6), dp(54));
++        float iconWidth = iconHeight * bitmap.getWidth() / (float) bitmap.getHeight();
++        float maxWidth = width - dp(4);
++        if (iconWidth > maxWidth) {
++            iconWidth = maxWidth;
++            iconHeight = iconWidth * bitmap.getHeight() / (float) bitmap.getWidth();
++        }
++        rect.set(left + (width - iconWidth) / 2f, (getHeight() - iconHeight) / 2f,
++                left + (width + iconWidth) / 2f, (getHeight() + iconHeight) / 2f);
++        paint.setAlpha(255);
++        paint.setFilterBitmap(true);
++        canvas.drawBitmap(bitmap, null, rect, paint);
++        return true;
++    }
++
++    private Bitmap loadLaneBitmap(String resourceName) {
++        Bitmap cached = iconCache.get(resourceName);
++        if (cached != null) {
++            return cached;
++        }
++        int id = getResources().getIdentifier(resourceName, "drawable", getContext().getPackageName());
++        if (id == 0) {
++            return null;
++        }
++        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), id);
++        if (bitmap != null) {
++            iconCache.put(resourceName, bitmap);
++        }
++        return bitmap;
++    }
++
++    private String amapAssetForLane(int lane) {
++        switch (lane) {
++            case 0:
++            case 15:
++                return "0";
++            case 1:
++            case 16:
++                return "1";
++            case 2:
++            case 17:
++            case 30:
++                return "20";
++            case 31:
++                return "21";
++            case 3:
++            case 18:
++                return "3";
++            case 4:
++            case 19:
++            case 32:
++                return "40";
++            case 33:
++                return "43";
++            case 5:
++            case 20:
++                return "5";
++            case 6:
++            case 21:
++            case 34:
++                return "61";
++            case 35:
++                return "63";
++            case 7:
++            case 22:
++            case 36:
++                return "70";
++            case 37:
++                return "71";
++            case 38:
++                return "73";
++            case 8:
++            case 23:
++                return "8";
++            case 9:
++            case 24:
++            case 39:
++                return "90";
++            case 40:
++                return "95";
++            case 10:
++            case 25:
++            case 41:
++                return "100";
++            case 42:
++                return "101";
++            case 11:
++            case 26:
++            case 43:
++                return "113";
++            case 44:
++            case 48:
++                return "115";
++            case 12:
++            case 27:
++            case 45:
++                return "121";
++            case 46:
++                return "123";
++            case 47:
++                return "125";
++            case 13:
++            case 14:
++            case 28:
++            case 29:
++                return "d";
++            default:
++                return null;
++        }
++    }
++
+     private void drawDirection(Canvas canvas, int direction, float left, float width) {
+         float cx = left + width / 2f;
+         float bottom = getHeight() - dp(10);
+
+'@
+          git apply lane.patch
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android packages
+        shell: pwsh
+        run: |
+          sdkmanager "platforms;android-31" "build-tools;34.0.0"
+      - name: Build signed APK
+        shell: pwsh
+        run: .\build.ps1
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: amap_companion_signed
+          path: amap_companion_signed.apk
