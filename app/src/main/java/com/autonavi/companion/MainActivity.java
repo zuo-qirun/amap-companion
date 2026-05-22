@@ -717,7 +717,7 @@ public class MainActivity extends Activity {
 
         previewTurnText = new TextView(this);
         previewTurnText.setText("\u2190  669\u7c73\n\u8fdb\u5165 \u6986\u4e61\u8def\u8f85\u8def");
-        previewTurnText.setTextSize(15f);
+        previewTurnText.setTextSize(20f);
         previewTurnText.setTypeface(Typeface.DEFAULT_BOLD);
         previewTurnText.setGravity(Gravity.CENTER);
         previewTurnText.setTextColor(Color.WHITE);
