@@ -6,6 +6,12 @@
 update_server/public/CHANGELOG.md
 ```
 
+## 2026-06-30 高德地图 9.5.0 巡航红绿灯适配
+
+- 默认目标包名切换为高德地图 9.5.0 官方包名 `com.autonavi.amapauto`，主动请求车道、红绿灯和路况数据时不再误发给旧版克隆包。
+- 新增 9.5.0.600006 专用 `CameraLightInteract.smali`。按该版本的五字段布局读取 `direction/status/countDown/showType`，发送完整 `lightsData`、兼容单灯字段和显式清除信号，同时保留高德内部 `vh0` 调用。
+- 悬浮窗自动文字模式接入高德 `KEY_TYPE=10019` 的昼夜状态通知：`EXTRA_STATE=37` 时透明背景使用深色字体，`EXTRA_STATE=38` 时使用浅色字体；昼夜状态会持久保存，且不会覆盖用户自定义颜色。
+
 ## 2026-06-14 历史版本、诊断中心与广播协议文档
 
 - 更新服务器新增历史版本页面与缓存能力：可从 GitHub Releases 同步并预先缓存历史 APK，用户需要旧版时可在独立页面查看版本、更新日志和下载入口。

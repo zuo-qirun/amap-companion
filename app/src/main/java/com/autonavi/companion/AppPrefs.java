@@ -47,6 +47,7 @@ public final class AppPrefs {
     public static final String KEY_TEXT_MODE                    = "text_mode";
     public static final String KEY_CUSTOM_TEXT_COLOR_ENABLED    = "custom_text_color_enabled";
     public static final String KEY_TEXT_COLOR                   = "text_color";
+    public static final String KEY_DAY_NIGHT_STATE              = "day_night_state";
     public static final String KEY_OVERLAY_UI_STYLE             = "overlay_ui_style";
     public static final String KEY_AUTO_START_ENABLED           = "auto_start_enabled";
     public static final String KEY_START_SERVICE_ON_APP_OPEN    = "start_service_on_app_open";
@@ -74,7 +75,7 @@ public final class AppPrefs {
     public static final String EXTRA_DIAGNOSTIC_REPLAY          = "diagnostic_replay";
 
     // ── UI style values ──────────────────────────────────────────────────
-    public static final String DEFAULT_TARGET_PACKAGE           = "com.autonavi.amapClone";
+    public static final String DEFAULT_TARGET_PACKAGE           = "com.autonavi.amapauto";
     public static final String TEXT_MODE_LIGHT                  = "light";
     public static final String TEXT_MODE_AUTO                   = "auto";
     public static final String OVERLAY_UI_OLD                   = OverlayUiStyles.OLD;
@@ -272,7 +273,33 @@ public final class AppPrefs {
     }
 
     public static boolean usesDarkTextPalette(Context context) {
-        return getBackgroundOpacityPercent(context) <= 55 && isAutoTextMode(context);
+        if (!isAutoTextMode(context)) {
+            return false;
+        }
+        // Opaque dark panels must retain light text for contrast. Day/night
+        // following is useful when the map shows through a transparent panel.
+        if (getBackgroundOpacityPercent(context) > 55) {
+            return false;
+        }
+        int dayNightState = getDayNightState(context);
+        return dayNightState != AmapConstants.MAP_STATE_NIGHT;
+    }
+
+    public static int getDayNightState(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt(KEY_DAY_NIGHT_STATE, -1);
+    }
+
+    public static boolean updateDayNightState(Context context, int state) {
+        if (state != AmapConstants.MAP_STATE_DAY && state != AmapConstants.MAP_STATE_NIGHT) {
+            return false;
+        }
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (prefs.getInt(KEY_DAY_NIGHT_STATE, -1) == state) {
+            return false;
+        }
+        prefs.edit().putInt(KEY_DAY_NIGHT_STATE, state).apply();
+        return true;
     }
 
     public static boolean isCustomTextColorEnabled(Context context) {
