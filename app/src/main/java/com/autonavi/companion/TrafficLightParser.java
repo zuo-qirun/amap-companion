@@ -66,7 +66,8 @@ public final class TrafficLightParser {
                         int currentTurnIcon, HashMap<Integer, LightState> existingLights) {
         int keyType = intValue(extras, "KEY_TYPE", -1);
         if (booleanValue(extras, "clearLights", false)
-                || booleanValue(extras, "EXTRA_CLEAR_LIGHTS", false)) {
+                || booleanValue(extras, "EXTRA_CLEAR_LIGHTS", false)
+                || isExplicitEmptyPayload(extras)) {
             return new Result(new HashMap<>(), true, inCruiseMode);
         }
         if (keyType != AmapConstants.KEY_TYPE_TRAFFIC_LIGHT
@@ -782,10 +783,28 @@ public final class TrafficLightParser {
                 "redSeconds", "redCountDown", "redCountdown", "RED_LIGHT_COUNT_DOWN_SECONDS",
                 "greenLightLastSecond", "greenLightCountDownSeconds", "greenLightCountdownSeconds",
                 "greenSeconds", "greenCountDown", "greenCountdown", "GREEN_LIGHT_LAST_SECOND",
+                "leftRedLightCountDownSeconds", "straightRedLightCountDownSeconds",
+                "rightRedLightCountDownSeconds",
                 "dir", "direction", "trafficLightDir", "trafficLightDirection", "trafficLights",
                 "trafficLight", "trafficLightInfo", "trafficLightsCountdownInfo", "lightsData",
                 "LIGHTS_DATA", "cameraLightInfo",
                 "cameraLightInfos", "cameraLightInfoWrapper", "cameraLights", "lightInfos");
+    }
+
+    static boolean hasTrafficLightPayload(Bundle extras) {
+        if (extras == null) {
+            return false;
+        }
+        return intValue(extras, "KEY_TYPE", -1) == AmapConstants.KEY_TYPE_TRAFFIC_LIGHT
+                || hasCountdownPayload(extras)
+                || hasAny(extras, "lightsCount", "LIGHTS_COUNT",
+                "clearLights", "EXTRA_CLEAR_LIGHTS");
+    }
+
+    private static boolean isExplicitEmptyPayload(Bundle extras) {
+        int count = intValue(extras, "lightsCount",
+                intValue(extras, "LIGHTS_COUNT", -1));
+        return count == 0 && !hasSingleLightPayload(extras);
     }
 
     private static Object safeExtra(Bundle extras, String key) {

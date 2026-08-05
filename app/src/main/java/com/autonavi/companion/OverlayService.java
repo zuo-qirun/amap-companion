@@ -3130,6 +3130,7 @@ public class OverlayService extends Service {
         currentRawKeyType = intValue(extras, "KEY_TYPE", -1);
 
         ensureOverlay();
+        boolean dayNightChanged = updateDayNightStateFromExtras(extras);
         boolean foregroundChanged = updateTargetForegroundFromExtras(extras);
         boolean navigationActivityChanged = updateNavigationActivityFromExtras(extras);
         boolean displayPolicyChanged = targetBroadcastChanged
@@ -3144,6 +3145,10 @@ public class OverlayService extends Service {
 
         int keyType = currentRawKeyType;
 
+        if (dayNightChanged) {
+            applyTextPalette();
+        }
+
         if (keyType == 13011 || hasAny(extras, "EXTRA_TMC_SEGMENT", "extra_tmc_segment")) {
             updateTmcData(valueString(extras, "EXTRA_TMC_SEGMENT", "extra_tmc_segment"));
         }
@@ -3155,28 +3160,7 @@ public class OverlayService extends Service {
 
         boolean trafficLightAction = action != null
                 && action.toLowerCase(java.util.Locale.US).contains("traffic_light");
-        if (keyType == AmapConstants.KEY_TYPE_TRAFFIC_LIGHT
-                || trafficLightAction
-                || extras.containsKey("trafficLightStatus")
-                || extras.containsKey("TRAFFIC_LIGHT_STATUS")
-                || extras.containsKey("traffic_light_status")
-                || extras.containsKey("redLightCountDownSeconds")
-                || extras.containsKey("RED_LIGHT_COUNT_DOWN_SECONDS")
-                || extras.containsKey("red_light_count_down_seconds")
-                || extras.containsKey("greenLightLastSecond")
-                || extras.containsKey("GREEN_LIGHT_LAST_SECOND")
-                || extras.containsKey("green_light_last_second")
-                || extras.containsKey("leftRedLightCountDownSeconds")
-                || extras.containsKey("straightRedLightCountDownSeconds")
-                || extras.containsKey("rightRedLightCountDownSeconds")
-                || extras.containsKey("trafficLights")
-                || extras.containsKey("trafficLightInfo")
-                || extras.containsKey("cameraLightInfo")
-                || extras.containsKey("cameraLightInfos")
-                || extras.containsKey("cameraLightInfoWrapper")
-                || extras.containsKey("cameraLights")
-                || extras.containsKey("lightInfos")
-                || extras.containsKey("dir")) {
+        if (trafficLightAction || TrafficLightParser.hasTrafficLightPayload(extras)) {
             updateTrafficLights(extras);
         }
 
@@ -3194,6 +3178,14 @@ public class OverlayService extends Service {
             syncMainOverlayAttachment();
             ensureClusterMirror();
         }
+    }
+
+    private boolean updateDayNightStateFromExtras(Bundle extras) {
+        if (currentRawKeyType != AmapConstants.KEY_TYPE_NAVIGATION_STATE) {
+            return false;
+        }
+        int state = intValue(extras, "EXTRA_STATE", -1);
+        return AppPrefs.updateDayNightState(this, state);
     }
 
     private void handleDiagnosticReplay(Intent intent) {
